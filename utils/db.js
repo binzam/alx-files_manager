@@ -63,8 +63,23 @@ class DBClient {
       email,
       password: hashedPwd,
     });
-
     return user;
+  }
+
+  static async getUserByToken(token) {
+    try {
+      const db = this.client.db(this.database);
+      const usersCollection = db.collection('users');
+      const user = await usersCollection.findOne(
+        { token },
+        { projection: { email: 1, id: 1 } },
+      );
+
+      return user;
+    } catch (error) {
+      console.error('Error in getUserByToken:', error);
+      throw new Error('An error occurred while retrieving the user');
+    }
   }
 }
 const dbClient = new DBClient();
