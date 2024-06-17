@@ -1,4 +1,4 @@
-import { MongoClient } from 'mongodb';
+import { MongoClient, ObjectId } from 'mongodb';
 import sha1 from 'sha1';
 
 class DBClient {
@@ -66,18 +66,27 @@ class DBClient {
     return user;
   }
 
-  static async getUserByToken(token) {
+  async findUserById(id) {
+    try {
+      const _id = new ObjectId(id);
+      const db = this.client.db(this.database);
+      const usersCollection = db.collection('users');
+      const user = await usersCollection.findOne({ _id });
+      return user || null;
+    } catch (error) {
+      console.error('Error in getUserByToken:', error);
+      throw new Error('An error occurred while retrieving the user');
+    }
+  }
+
+  async findUserByEmail(email) {
     try {
       const db = this.client.db(this.database);
       const usersCollection = db.collection('users');
-      const user = await usersCollection.findOne(
-        { token },
-        { projection: { email: 1, id: 1 } },
-      );
-
-      return user;
+      const user = await usersCollection.findOne({ email });
+      return user || null;
     } catch (error) {
-      console.error('Error in getUserByToken:', error);
+      console.error('Error in findUserByEmail:', error);
       throw new Error('An error occurred while retrieving the user');
     }
   }

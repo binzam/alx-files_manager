@@ -1,16 +1,42 @@
-import { v4 } from 'uuid';
+import { v4 as uuidv4 } from 'uuid';
+import sha1 from 'sha1';
 import redisClient from '../utils/redis';
+import dbClient from '../utils/db';
 
 class AuthController {
   static async getConnect(req, res) {
     try {
-      const { user } = req;
-      const token = v4();
+      const authHeader = req.headers.authorization;
+      if (!authHeader || !authHeader.startsWith('Basic ')) {
+        return res.status(401).json({ error: 'Unauthorized' });
+      }
 
-      await redisClient.set(`auth_${token}`, user._id.toString(), 24 * 60 * 60);
-      res.status(200).json({ token });
+      const base64Credentials = authHeader.split(' ')[1];
+      const credentials = Buffer.from(base64Credentials, 'base64').toString(
+        'utf-8',
+      );
+      const [email, password] = credentials.split(':');
+      const user = await dbClient.findUserByEmail(email);
+      if (!user) {
+        return res.status(401).json({ error: 'Unauthorized' });
+      }
+      if (user.password !== sha1(password)) {
+        return res.status(401).json({ error: 'Unauthorized' });
+      }
+      const accessToken = uuidv4();
+
+      await redisClient.set(
+        `auth_${accessToken}`,
+        user._id.toString('utf8'),
+        86400,
+      );
+
+      return res.status(200).json({ token: accessToken });
     } catch (error) {
-      res.status(500).json({ error: 'error occured processing the request' });
+      console.error('Error in getConnect:', error);
+      return res
+        .status(500)
+        .json({ error: 'An error occurred while processing the request' });
     }
   }
 
@@ -22,6 +48,10 @@ class AuthController {
       }
       const userId = await redisClient.get(`auth_${token}`);
       if (!userId) {
+        return res.status(401).json({ error: 'Unauthorized' });
+      }
+      const user = await dbClient.findUserById(userId);
+      if (!user) {
         return res.status(401).json({ error: 'Unauthorized' });
       }
       await redisClient.del(`auth_${token}`);
