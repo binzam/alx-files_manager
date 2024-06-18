@@ -74,7 +74,7 @@ class DBClient {
       const user = await usersCollection.findOne({ _id });
       return user || null;
     } catch (error) {
-      console.error('Error in getUserByToken:', error);
+      console.error('Error in getUserById:', error);
       throw new Error('An error occurred while retrieving the user');
     }
   }

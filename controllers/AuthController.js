@@ -6,13 +6,14 @@ class AuthController {
     try {
       const { user } = req;
       const accessToken = uuidv4();
-
+      if (!user) {
+        return res.status(401).json({ error: 'Unauthorized' });
+      }
       await redisClient.set(
         `auth_${accessToken}`,
         user._id.toString('utf8'),
         86400,
       );
-
       return res.status(200).json({ token: accessToken });
     } catch (error) {
       console.error('Error in getConnect:', error);
