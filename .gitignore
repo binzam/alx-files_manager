@@ -1,3 +1,6 @@
 node_modules/
 package-lock.json
-FilesController.js
+temp.js
+db_version1.js
+todos.txt
+tmp/
