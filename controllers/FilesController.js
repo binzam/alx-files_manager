@@ -3,19 +3,17 @@ import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import dbClient from '../utils/db';
 
-const FOLDER_PATH = process.env.FOLDER_PATH || './tmp/files_manager';
+const FOLDER_PATH = process.env.FOLDER_PATH || '/tmp/files_manager';
 
 class FilesController {
   static async postUpload(req, res) {
     const { user } = req;
-    console.log(user);
-    const {
-      name, type, parentId = 0, isPublic = false, data,
-    } = req.body;
-    console.log(req.body);
     if (!user) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
+    const {
+      name, type, parentId = 0, isPublic = false, data,
+    } = req.body;
     if (!name) {
       return res.status(400).json({ error: 'Missing name' });
     }
@@ -56,14 +54,7 @@ class FilesController {
     const fileWithLocalPath = { ...fileDocument, localPath: filePath };
 
     const newFile = await dbClient.saveFileInDb(fileWithLocalPath);
-    return res.status(201).json({
-      id: newFile.insertedId,
-      userId: user._id,
-      name,
-      type,
-      isPublic,
-      parentId: parentId || 0,
-    });
+    return res.status(201).json(newFile);
   }
 }
 export default FilesController;

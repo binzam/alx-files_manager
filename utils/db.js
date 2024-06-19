@@ -90,6 +90,33 @@ class DBClient {
       throw new Error('An error occurred while retrieving the user');
     }
   }
+
+  async getFileFromDb(fileId) {
+    try {
+      const db = this.client.db(this.database);
+      const filesCollection = db.collection('files');
+      const file = await filesCollection.findOne({
+        _id: new ObjectId(fileId),
+      });
+      return file;
+    } catch (error) {
+      console.error('Error in getFileFromDb:', error);
+      return null;
+    }
+  }
+
+  async saveFileInDb(fileDocument) {
+    try {
+      const db = this.client.db(this.database);
+      const filesCollection = db.collection('files');
+      await filesCollection.insertOne(fileDocument);
+      const newFile = await this.getFileFromDb(fileDocument._id);
+      return newFile;
+    } catch (error) {
+      console.error('Error in saveFileInDb:', error);
+      return null;
+    }
+  }
 }
 const dbClient = new DBClient();
 
