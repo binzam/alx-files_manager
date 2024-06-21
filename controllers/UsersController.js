@@ -1,5 +1,6 @@
 import dbClient from '../utils/db';
-import redisClient from '../utils/redis';
+// import redisClient from '../utils/redis';
+import { getCurrentUser } from '../utils/auth';
 
 class UsersController {
   static async postNew(req, res) {
@@ -11,13 +12,13 @@ class UsersController {
       if (!password) {
         return res.status(400).json({ error: 'Missing password' });
       }
-      const userExist = await dbClient.userExist(email);
+      const userExist = await dbClient.findUserByEmail(email);
       if (userExist) {
         return res.status(400).json({ error: 'Already exist' });
       }
-      const user = await dbClient.createUser(email, password);
-      const id = user.insertedId;
-      return res.status(201).json({ id, email });
+      const newUser = await dbClient.createUser(email, password);
+      console.log('postnew', newUser);
+      return res.status(201).json(newUser);
     } catch (error) {
       console.error(error);
       return res
@@ -28,21 +29,13 @@ class UsersController {
 
   static async getMe(req, res) {
     try {
-      const token = req.headers['x-token'];
-
-      if (!token) {
-        return res.status(401).json({ error: 'Unauthorized' });
+      const currentUser = await getCurrentUser(req);
+      if (!currentUser) {
+        return res.status(401).json({
+          error: 'Unauthorized',
+        });
       }
-      const id = await redisClient.get(`auth_${token}`);
-      if (!id) {
-        return res.status(401).json({ error: 'Unauthorized' });
-      }
-      const user = await dbClient.findUserById(id);
-      if (!user) {
-        return res.status(401).json({ error: 'Unauthorized' });
-      }
-      const { _id, email } = user;
-      return res.status(200).json({ id: _id, email });
+      return res.status(200).json(currentUser);
     } catch (error) {
       console.error('Error in getMe:', error);
       return res

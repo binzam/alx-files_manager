@@ -4,7 +4,7 @@ import { createClient } from 'redis';
 class RedisClient {
   constructor() {
     this.client = createClient();
-    this.client.connected = true;
+    this.client.connected = false;
     this.client.on('error', (err) => {
       console.error('Redis client error:', err.toString());
       this.client.connected = false;
@@ -12,26 +12,26 @@ class RedisClient {
     this.client.on('connect', () => {
       this.client.connected = true;
     });
+    this.asyncSetX = promisify(this.client.setex).bind(this.client);
+    this.asyncGet = promisify(this.client.get).bind(this.client);
+    this.asyncDel = promisify(this.client.del).bind(this.client);
+    this.asyncExpire = promisify(this.client.expire).bind(this.client);
   }
 
   isAlive() {
     return this.client.connected;
   }
 
-  async get(key) {
-    const getAsync = promisify(this.client.get).bind(this.client);
-    const value = await getAsync(key);
-    return value;
+  get(key) {
+    return this.asyncGet(key);
   }
 
-  async set(key, value, duration) {
-    const setAsync = promisify(this.client.set).bind(this.client);
-    await setAsync(key, value, 'EX', duration);
+  set(key, value, expiry) {
+    this.asyncSetX(key, expiry, value);
   }
 
-  async del(key) {
-    const delAsync = promisify(this.client.del).bind(this.client);
-    await delAsync(key);
+  del(key) {
+    return this.asyncDel(key);
   }
 }
 
